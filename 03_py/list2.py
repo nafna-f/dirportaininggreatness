@@ -1,3 +1,12 @@
+# Naf (Nafiyu Murtaza), Alex (Sasha Murokh), Jonathan (Jonathan Metzler)
+# No Z's In Our Name
+# SoftDev
+# K04 -- Python Lists
+# 2024-09-17
+# Time: N/A
+
+# READ: The function names indicate the problem in Codingbat.
+
 def count_evens(nums):
   counter =0
   for item in nums:
