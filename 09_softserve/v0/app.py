@@ -2,6 +2,12 @@
 # SoftDev
 # September 2024
 
+# Changes Detected:
+# This file is the same as the app.py provided in work #08.
+# The questions are replaced with comments that have nothing in them.
+# This file fails to explain the code written.
+# This is an example of a file that would not be efficient in catching others up to speed to your code.
+
 from flask import Flask
 app = Flask(__name__)          # ...
 
@@ -12,3 +18,4 @@ def hello_world():
 
 app.run()                      # ...
                 
+

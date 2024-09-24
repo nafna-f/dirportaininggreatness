@@ -2,6 +2,11 @@
 # SoftDev
 # September 2024
 
+# Changes Detected:
+# A new comment has been added. This comment is not helpful at all, but it is safe to assume it was made in order to guide our insight as students.
+# Running now prints "about to print __name__"..., where __name__ is __main__.
+# This is because __main__ is the default name for a Python module.
+
 from flask import Flask
 app = Flask(__name__)             #create instance of class Flask
 
