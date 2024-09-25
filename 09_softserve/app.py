@@ -41,7 +41,8 @@ def randomOcc():
         for x in range(0, len(conInfo) - 1, 2):
             jobDict[conInfo[x]] = float(conInfo[x+1])
     
-        return random.choices(list(jobDict), weights=[6.1, 5.0, 2.7, 1.7, 0.9, 1.6, 0.8, 6.1, 1.7, 5.5, 2.8, 2.3, 8.3, 3.7, 4, 10.2, 15.1, 0.6, 4.3, 3.8, 6.1, 6.5])
+        returnState = random.choices(list(jobDict), weights=[6.1, 5.0, 2.7, 1.7, 0.9, 1.6, 0.8, 6.1, 1.7, 5.5, 2.8, 2.3, 8.3, 3.7, 4, 10.2, 15.1, 0.6, 4.3, 3.8, 6.1, 6.5])
+        return returnState[0]
         #^^ chooses a random key (occupation) from jobDict
     
 app.debug = True
