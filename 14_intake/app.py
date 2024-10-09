@@ -41,14 +41,13 @@ PROTIP: Insert your own in-line comments
 
 @app.route("/", methods=['GET', 'POST'])
 def disp_loginpage():
-    # All this is run when the page is opened, inside the terminal.
     print("\n\n\n")
     print("***DIAG: this Flask obj ***")
-    print(app) # prints the current flask object (so right now, its using flask on app, so it prints <Flask 'app'>.
+    print(app)
     print("***DIAG: request obj ***")
-    print(request) # prints the website that a request is being sent to? either that or the other way around.
+    print(request)
     print("***DIAG: request.args ***")
-    print(request.args) # 
+    print(request.args)
 #     print("***DIAG: request.args['username']  ***")
 #     print(request.args['username'])
 #     print("***DIAG: request.headers ***")
@@ -58,13 +57,13 @@ def disp_loginpage():
 
 @app.route("/auth", methods=['GET', 'POST'])
 def authenticate():
-#     print("\n\n\n")
-#     print("***DIAG: this Flask obj ***")
-#     print(app)
-#     print("***DIAG: request obj ***")
-#     print(request)
-#     print("***DIAG: request.args ***")
-#     print(request.args)
+    print("\n\n\n")
+    print("***DIAG: this Flask obj ***")
+    print(app)
+    print("***DIAG: request obj ***")
+    print(request)
+    print("***DIAG: request.args ***")
+    print(request.args)
 #     print("***DIAG: request.args['username']  ***")
 #     print(request.args['username'])
 #     print("***DIAG: request.headers ***")
