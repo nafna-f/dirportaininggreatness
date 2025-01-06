@@ -28,7 +28,10 @@ let fact = function(n){
 
 //fib:
 
-//<your team's fib(n) implementation>
+let fib = function(n){
+	let fibCount = 0;
+	
+}
 
 //TEST CALLS
 // (writing here can facilitate EZer copy/pasting into dev console now and later...)
