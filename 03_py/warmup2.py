@@ -1,10 +1,9 @@
-# Naf (Nafiyu Murtaza), Alex (Sasha Murokh), Jonathan (Jonathan Metzler)
-# No Z's In Our Name
-# SoftDev
+# Naf (Nafiyu Murtaza), Alex (Sasha Murokh), Jennifer Ng
+# N/A
+# Ethics
 # K03 -- Warmups
-# 2024-09-17
-# Time: N/A
-
+# 2025-01-31
+# Time: 13:46
 # READ: The function names indicate the problem in Codingbat.
 
 def string_times(str, n):
