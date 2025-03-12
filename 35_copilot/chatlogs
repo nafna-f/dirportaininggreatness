@@ -1,0 +1,786 @@
+p0 - Naf's Version
+
+
+First approach: Tell it to create everything from scratch.
+- A repository is required for Copilot Chat to function. It cannot create repositories on its own. 
+Prompt: "Please generate a working flask app that links to a webpage that is a collaborative blog-posting and sharing website that takes a better approach than traditional social media. Users can register, log in, and explore different blog categories such as Sports, Politics, Business, Lifestyle, and Arts. Logged-in users can create, edit, and view blog posts, with options to navigate by category or check out random posts. Each user has access to a personalized interface that adapts based on their actions, such as logged-in vs. logged-out views. Facebook but cooler. Generate as many files into this repository as necessary."
+Answer: "Creating a full-featured Flask application with the specified functionality involves multiple steps, including setting up the project structure, creating necessary files, and implementing user authentication and blog post functionalities. Below is an outline of the project structure and the initial setup for the Flask application. I will start by creating the core files for the Flask app and the user authentication system.
+Project Structure
+Code
+
+p0ai/
+│
+├── app/
+│   ├── __init__.py
+│   ├── models.py
+│   ├── forms.py
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   ├── main.py
+│   │   └── blog.py
+│   ├── templates/
+│   │   ├── base.html
+│   │   ├── index.html
+│   │   ├── login.html
+│   │   ├── register.html
+│   │   ├── create_post.html
+│   │   ├── edit_post.html
+│   │   ├── view_post.html
+│   │   ├── category.html
+│   │   └── random_post.html
+│   ├── static/
+│   │   ├── css/
+│   │   │   └── styles.css
+│   │   └── js/
+│   │       └── scripts.js
+│   └── utils.py
+├── config.py
+├── run.py
+└── requirements.txt
+
+Public code references from 10 repositories
+
+Step-by-Step Implementation
+
+    Create config.py: Configuration settings for the Flask app.
+    Create run.py: Entry point to run the Flask app.
+    Initialize Flask app in app/__init__.py.
+    Define models in app/models.py.
+    Create forms in app/forms.py.
+    Create routes for authentication, main page, and blog functionalities in app/routes.
+    Create templates for different pages in app/templates.
+    Add static files for CSS and JS in app/static.
+    Create utility functions in app/utils.py.
+
+Let's start by creating the initial setup files.
+config.py
+Python
+
+import os
+
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'a-hard-to-guess-string'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///site.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+run.py
+Python
+
+from app import create_app
+
+app = create_app()
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+app/__init__.py
+Python
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager
+from config import Config
+
+db = SQLAlchemy()
+bcrypt = Bcrypt()
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'
+login_manager.login_message_category = 'info'
+
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+
+    db.init_app(app)
+    bcrypt.init_app(app)
+    login_manager.init_app(app)
+
+    from app.routes.auth import auth
+    from app.routes.main import main
+    from app.routes.blog import blog
+    app.register_blueprint(auth)
+    app.register_blueprint(main)
+    app.register_blueprint(blog)
+
+    return app
+
+Public code references from 10 repositories
+
+app/models.py
+Python
+
+from datetime import datetime
+from app import db, login_manager
+from flask_login import UserMixin
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
+    password = db.Column(db.String(60), nullable=False)
+    posts = db.relationship('Post', backref='author', lazy=True)
+
+    def __repr__(self):
+        return f"User('{self.username}', '{self.email}', '{self.image_file}')"
+
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    content = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(20), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f"Post('{self.title}', '{self.date_posted}')"
+
+Public code references from 12 repositories
+
+app/forms.py
+Python
+
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, SelectField
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
+from app.models import User
+
+class RegistrationForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Sign Up')
+
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user:
+            raise ValidationError('That username is taken. Please choose a different one.')
+
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user:
+            raise ValidationError('That email is taken. Please choose a different one.')
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    remember = BooleanField('Remember Me')
+    submit = SubmitField('Login')
+
+class PostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    category = SelectField('Category', choices=[('Sports', 'Sports'), ('Politics', 'Politics'), ('Business', 'Business'), ('Lifestyle', 'Lifestyle'), ('Arts', 'Arts')], validators=[DataRequired()])
+    content = TextAreaField('Content', validators=[DataRequired()])
+    submit = SubmitField('Post')
+
+Public code references from 29 repositories
+
+app/routes/auth.py
+Python
+
+from flask import Blueprint, render_template, redirect, url_for, flash
+from app import db, bcrypt
+from app.models import User
+from app.forms import RegistrationForm, LoginForm
+from flask_login import login_user, current_user, logout_user, login_required
+
+auth = Blueprint('auth', __name__)
+
+@auth.route("/register", methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.home'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        db.session.add(user)
+        db.session.commit()
+        flash('Your account has been created! You are now able to log in', 'success')
+        return redirect(url_for('auth.login'))
+    return render_template('register.html', title='Register', form=form)
+
+@auth.route("/login", methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.home'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and bcrypt.check_password_hash(user.password.data, form.password.data):
+            login_user(user, remember=form.remember.data)
+            return redirect(url_for('main.home'))
+        else:
+            flash('Login Unsuccessful. Please check email and password', 'danger')
+    return render_template('login.html', title='Login', form=form)
+
+@auth.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for('main.home'))
+
+Public code references from 25 repositories
+
+app/routes/main.py
+Python
+
+from flask import Blueprint, render_template
+from app.models import Post
+
+main = Blueprint('main', __name__)
+
+@main.route("/")
+@main.route("/home")
+def home():
+    posts = Post.query.all()
+    return render_template('index.html', posts=posts)
+
+Public code references from 12 repositories
+
+app/routes/blog.py
+Python
+
+from flask import Blueprint, render_template, url_for, flash, redirect, request
+from app import db
+from app.models import Post
+from app.forms import PostForm
+from flask_login import current_user, login_required
+
+blog = Blueprint('blog', __name__)
+
+@blog.route("/post/new", methods=['GET', 'POST'])
+@login_required
+def new_post():
+    form = PostForm()
+    if form.validate_on_submit():
+        post = Post(title=form.title.data, content=form.content.data, category=form.category.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Your post has been created!', 'success')
+        return redirect(url_for('main.home'))
+    return render_template('create_post.html', title='New Post', form=form)
+
+@blog.route("/post/<int:post_id>")
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return render_template('view_post.html', title=post.title, post=post)
+
+@blog.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
+@login_required
+def update_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    form = PostForm()
+    if form.validate_on_submit():
+        post.title = form.title.data
+        post.content = form.content.data
+        post.category = form.category.data
+        db.session.commit()
+        flash('Your post has been updated!', 'success')
+        return redirect(url_for('blog.post', post_id=post.id))
+    elif request.method == 'GET':
+        form.title.data = post.title
+        form.content.data = post.content
+        form.category.data = post.category
+    return render_template('create_post.html', title='Update Post', form=form)
+
+@blog.route("/post/<int:post_id>/delete", methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    db.session.delete(post)
+    db.session.commit()
+    flash('Your post has been deleted!', 'success')
+    return redirect(url_for('main.home'))
+
+@blog.route("/category/<string:category_name>")
+def category(category_name):
+    posts = Post.query.filter_by(category=category_name).all()
+    return render_template('category.html', posts=posts, category=category_name)
+
+@blog.route("/random")
+def random_post():
+    post = Post.query.order_by(db.func.random()).first()
+    return render_template('view_post.html', title=post.title, post=post)
+
+Public code references from 29 repositories
+
+requirements.txt
+Code
+
+Flask==2.0.2
+Flask-SQLAlchemy==2.5.1
+Flask-Bcrypt==0.7.1
+Flask-Login==0.5.0
+Flask-WTF==0.15.1
+
+Public code references from 14 repositories
+
+Templates and Static Files
+
+Create the HTML templates and static files (CSS and JS) as per the structure mentioned. Here is an example of base.html and index.html:
+app/templates/base.html
+HTML
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('main.home') }}">Home</a>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('blog.new_post') }}">New Post</a>
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}">Login</a>
+            <a href="{{ url_for('auth.register') }}">Register</a>
+        {% endif %}
+    </nav>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
+
+Public code references from 29 repositories
+
+app/templates/index.html
+HTML
+
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+    <h1>Recent Posts</h1>
+    {% for post in posts %}
+        <div>
+            <h2><a href="{{ url_for('blog.post', post_id=post.id) }}">{{ post.title }}</a></h2>
+            <p>{{ post.content[:200] }}...</p>
+            <p><a href="{{ url_for('blog.post', post_id=post.id) }}">Read more</a></p>
+        </div>
+    {% endfor %}
+{% endblock %}
+
+Public code references from 25 repositories
+
+Next Steps
+
+    Create the remaining templates for login, registration, post creation, editing, and viewing.
+    Add CSS styles in app/static/css/styles.css to enhance the appearance.
+    Configure and run the Flask application using flask run after setting up the database with flask db init, flask db migrate, and flask db upgrade.
+
+This initial setup provides a foundation for a collaborative blog-posting and sharing website with user authentication and blog post functionalities. You can further enhance and customize the application based on your specific requirements.
+
+Would you like me to proceed with creating the remaining templates and static files, or is there anything specific you would like to modify or add?"
+
+** For the tree, check the response **
+
+Thoughts:
+- This is a LOT.
+- Github Copilot was NOT able to create or modify any files in the repository. It gave me instructions on code to put in files I have to create myself. Copilot was not able to do any of this itself.
+- Copilot was also not able to give me everything, as it says in it's last message "Would you like me to proceed with creating the remaining templates and static files?"
+- This is way more than anything we did for p0.
+- Other things were imported, such as Bcrype and SQLAlchemy (not Lite - what significance does this have, I wonder...?)
+- .py files were organized into "models.py" and "forms.py".
+- added css even though I did not ask.
+
+I then proceeded to continue the process.
+Prompt: "Please proceed"
+Answer: "Step 1: Plan Application Structure and Requirements
+Substep 1: Identify the Main Components Needed for the Application
+
+    User authentication (registration, login, logout)
+    Blog post management (create, edit, delete, view)
+    Blog categories (Sports, Politics, Business, Lifestyle, Arts)
+    Personalized user interface (logged-in vs. logged-out views)
+    Navigation by category and random post feature
+
+Substep 2: Decide on the Routes and Views for the Application
+
+    Home Page: /
+    User Authentication: /login, /register, /logout
+    Blog Management: /post/new, /post/<int:post_id>, /post/<int:post_id>/edit, /post/<int:post_id>/delete
+    Category Views: /category/<string:category_name>
+    Random Post: /random
+
+Substep 3: Determine the Database Schema
+
+    User Model: id, username, email, password, image_file
+    Post Model: id, title, date_posted, content, category, user_id
+
+Step 2: Implement Application Components
+Substep 1: Create the Main Flask Application File
+
+We'll start by setting up the main Flask application, initializing the database, and configuring the application.
+Substep 2: Set Up the Database Models and Migrations
+
+Define the database models for users and posts, and set up database migrations.
+Substep 3: Develop the HTML Templates and Static Files
+
+Create HTML templates for the main views (home, login, register, create post, edit post, view post, category, random post) and add static files for styling.
+Followup Steps
+
+    Implement user authentication and authorization.
+    Add features for blog post creation, editing, and sharing.
+
+Let's start by creating the initial setup files.
+config.py
+Python
+
+import os
+
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'a-hard-to-guess-string'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///site.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+Public code references from 5 repositories
+
+1 vulnerability detected
+
+run.py
+Python
+
+from app import create_app
+
+app = create_app()
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+Public code references from 6 repositories
+
+app/__init__.py
+Python
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager
+from config import Config
+
+db = SQLAlchemy()
+bcrypt = Bcrypt()
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'
+login_manager.login_message_category = 'info'
+
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+
+    db.init_app(app)
+    bcrypt.init_app(app)
+    login_manager.init_app(app)
+
+    from app.routes.auth import auth
+    from app.routes.main import main
+    from app.routes.blog import blog
+    app.register_blueprint(auth)
+    app.register_blueprint(main)
+    app.register_blueprint(blog)
+
+    return app
+
+Public code references from 9 repositories
+
+app/models.py
+Python
+
+from datetime import datetime
+from app import db, login_manager
+from flask_login import UserMixin
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
+    password = db.Column(db.String(60), nullable=False)
+    posts = db.relationship('Post', backref='author', lazy=True)
+
+    def __repr__(self):
+        return f"User('{self.username}', '{self.email}', '{self.image_file}')"
+
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    content = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(20), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f"Post('{self.title}', '{self.date_posted}')"
+
+Public code references from 22 repositories
+
+app/forms.py
+Python
+
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, SelectField
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
+from app.models import User
+
+class RegistrationForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Sign Up')
+
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user:
+            raise ValidationError('That username is taken. Please choose a different one.')
+
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user:
+            raise ValidationError('That email is taken. Please choose a different one.')
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    remember = BooleanField('Remember Me')
+    submit = SubmitField('Login')
+
+class PostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    category = SelectField('Category', choices=[('Sports', 'Sports'), ('Politics', 'Politics'), ('Business', 'Business'), ('Lifestyle', 'Lifestyle'), ('Arts', 'Arts')], validators=[DataRequired()])
+    content = TextAreaField('Content', validators=[DataRequired()])
+    submit = SubmitField('Post')
+
+Public code references from 29 repositories
+
+app/routes/auth.py
+Python
+
+from flask import Blueprint, render_template, redirect, url_for, flash
+from app import db, bcrypt
+from app.models import User
+from app.forms import RegistrationForm, LoginForm
+from flask_login import login_user, current_user, logout_user, login_required
+
+auth = Blueprint('auth', __name__)
+
+@auth.route("/register", methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.home'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        db.session.add(user)
+        db.session.commit()
+        flash('Your account has been created! You are now able to log in', 'success')
+        return redirect(url_for('auth.login'))
+    return render_template('register.html', title='Register', form=form)
+
+@auth.route("/login", methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.home'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and bcrypt.check_password_hash(user.password.data, form.password.data):
+            login_user(user, remember=form.remember.data)
+            return redirect(url_for('main.home'))
+        else:
+            flash('Login Unsuccessful. Please check email and password', 'danger')
+    return render_template('login.html', title='Login', form=form)
+
+@auth.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for('main.home'))
+
+Public code references from 37 repositories
+
+app/routes/main.py
+Python
+
+from flask import Blueprint, render_template
+from app.models import Post
+
+main = Blueprint('main', __name__)
+
+@main.route("/")
+@main.route("/home")
+def home():
+    posts = Post.query.all()
+    return render_template('index.html', posts=posts)
+
+Public code references from 17 repositories
+
+app/routes/blog.py
+Python
+
+from flask import Blueprint, render_template, url_for, flash, redirect, request
+from app import db
+from app.models import Post
+from app.forms import PostForm
+from flask_login import current_user, login_required
+
+blog = Blueprint('blog', __name__)
+
+@blog.route("/post/new", methods=['GET', 'POST'])
+@login_required
+def new_post():
+    form = PostForm()
+    if form.validate_on_submit():
+        post = Post(title=form.title.data, content=form.content.data, category=form.category.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Your post has been created!', 'success')
+        return redirect(url_for('main.home'))
+    return render_template('create_post.html', title='New Post', form=form)
+
+@blog.route("/post/<int:post_id>")
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return render_template('view_post.html', title=post.title, post=post)
+
+@blog.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
+@login_required
+def update_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    form = PostForm()
+    if form.validate_on_submit():
+        post.title = form.title.data
+        post.content = form.content.data
+        post.category = form.category.data
+        db.session.commit()
+        flash('Your post has been updated!', 'success')
+        return redirect(url_for('blog.post', post_id=post.id))
+    elif request.method == 'GET':
+        form.title.data = post.title
+        form.content.data = post.content
+        form.category.data = post.category
+    return render_template('create_post.html', title='Update Post', form=form)
+
+@blog.route("/post/<int:post_id>/delete", methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    db.session.delete(post)
+    db.session.commit()
+    flash('Your post has been deleted!', 'success')
+    return redirect(url_for('main.home'))
+
+@blog.route("/category/<string:category_name>")
+def category(category_name):
+    posts = Post.query.filter_by(category=category_name).all()
+    return render_template('category.html', posts=posts, category=category_name)
+
+@blog.route("/random")
+def random_post():
+    post = Post.query.order_by(db.func.random()).first()
+    return render_template('view_post.html', title=post.title, post=post)
+
+Public code references from 39 repositories
+
+Templates and Static Files
+
+Create the HTML templates and static files (CSS and JS) as per the structure mentioned. Here is an example of base.html and index.html:
+app/templates/base.html
+HTML
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('main.home') }}">Home</a>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('blog.new_post') }}">New Post</a>
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}">Login</a>
+            <a href="{{ url_for('auth.register') }}">Register</a>
+        {% endif %}
+    </nav>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
+
+Public code references from 36 repositories
+
+app/templates/index.html
+HTML
+
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+    <h1>Recent Posts</h1>
+    {% for post in posts %}
+        <div>
+            <h2><a href="{{ url_for('blog.post', post_id=post.id) }}">{{ post.title }}</a></h2>
+            <p>{{ post.content[:200] }}...</p>
+            <p><a href="{{ url_for('blog.post', post_id=post.id) }}">Read more</a></p>
+        </div>
+    {% endfor %}
+{% endblock %}
+
+Public code references from 23 repositories
+
+Would you like me to proceed with creating the remaining templates and static files, or is there anything specific you would like to modify or add?"
+
+** no tree provided this time **
+Notes:
+- I find it interesting how Github points out vulnerabilities with the information Copilot finds. If such is the case, why not remove those vulnerabilities? Why display it to us? 
+
+p0 - Tim's Version
+
+
+
+How many tries did it take to "get it right?"
+
+Did you catch any errors? If so, how did you notice, and what did you do?
+
